@@ -53,6 +53,8 @@ class Character {
 			return char_list;
 		};
 
+		char getSymbolTone();
+
 	public:
 		SymbolCode *symbolCode;
 		unsigned int code;

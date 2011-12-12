@@ -9,6 +9,11 @@
 #include "../../src/dict_common.h"
 using namespace std;
 
+char Character::getSymbolTone()
+{
+	return symbolCode->name[strlen(symbolCode->name)-1];
+}
+
 SymbolCode * MandarinList::searchSymbolCode(string &symbol)
 {
 	SymbolCode *pSymCode;
@@ -30,7 +35,19 @@ bool MandarinList::checkSpecialPhon(list<Character> *word)
 			if (c->code == 0) {
 				c->code = ci->code;
 				c->symbolCode = ci->symbolCode;
-				continue;
+			}
+			if (c->code == 0x4e0d) {
+				list<Character>::iterator ci2 = ci;
+				if (ci2 == word->begin() &&
+						ci2->getSymbolTone() == '2' &&
+						word->size() > 2) {
+					//ignore some "²» bu2" words
+					ret = false;
+					break;
+				}
+				ci2++;
+				if (ci->getSymbolTone() == '2' && ci2->getSymbolTone() == '4')
+					continue;
 			}
 			if (c->symbolCode->code != ci->symbolCode->code) {
 				ret = true;
@@ -210,6 +227,8 @@ int MandarinList::load(const char *zhlist)
 	}
 
 	fs.close();
+
+	//save("e:\\output2.txt");
 	return 0;
 }
 
