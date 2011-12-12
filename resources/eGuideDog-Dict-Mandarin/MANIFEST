@@ -1,0 +1,14 @@
+Mandarin.pm
+Changes
+Makefile.PL
+MANIFEST
+README
+update_dict.pl
+HanyuPinlu.txt
+Mandarin.txt
+zh_list
+zh_listx
+symbol_size_list
+Mandarin.dict
+t/1.t
+t/2.t
