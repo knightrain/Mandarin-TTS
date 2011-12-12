@@ -207,6 +207,7 @@ list<PhoneticSymbol*> Dict::lookup(list<Character> &charList) {
 	list<Character>::iterator cItor = charList.begin();
 	list<Character>::iterator cItor2 = charList.begin();
 	DictItem *di = 0;
+	int buflag = 0;
 
 	while (cItor != charList.end()) {
 		// get DictItem
@@ -216,6 +217,7 @@ list<PhoneticSymbol*> Dict::lookup(list<Character> &charList) {
 			di = &mExtraDictItemMap[cItor->code];
 		}
 
+		// TODO: handle english words
 		if (! (di->character.phonSymbol)) {
 			di->character.code = cItor->code; // needed?
 			string s = di->character.getUtf8();
@@ -259,17 +261,46 @@ list<PhoneticSymbol*> Dict::lookup(list<Character> &charList) {
 
 		if (foundMatchedWord) {
 			cItor2 = (*matchedWordItor)->begin();
+			if (buflag) {
+				PhoneticSymbol * phon;
+				if (cItor2->phonSymbol->getTone() == '4')
+					// "²»" tone 4 -> 2 when the next tone is 4
+					phon = findPhonSymbol("bu2");
+				else 
+					phon = findPhonSymbol("bu4");
+				phonList.push_back(phon);
+				buflag = 0;
+			}
 			for (; cItor2 != (*matchedWordItor)->end(); ++cItor2) {
 				phonList.push_back(cItor2->phonSymbol);
 				++cItor;
 			}
+		} else if (cItor->code == 0x4e0d) {
+			++cItor;
+			if (buflag) {
+				PhoneticSymbol * phon = findPhonSymbol("bu4");
+				phonList.push_back(phon);
+			} else if (cItor != charList.end())
+				buflag = 1;
+			else 
+				phonList.push_back(di->character.phonSymbol);
 		} else {
+			if (buflag) {
+				PhoneticSymbol * phon;
+				if (di->character.phonSymbol->getTone() == '4')
+					// "²»" tone 4 -> 2 when the next tone is 4
+					phon = findPhonSymbol("bu2");
+				else 
+					phon = findPhonSymbol("bu4");
+				phonList.push_back(phon);
+				buflag = 0;
+			}
 			phonList.push_back(di->character.phonSymbol);
 			++cItor;
 		}
 	}
 
-		// tone 3 rules: 333->223, 33->23, 3333->2323
+	// tone 3 rules: 333->223, 33->23, 3333->2323
 	list<PhoneticSymbol*>::reverse_iterator psIt = phonList.rbegin();
 	while (psIt != phonList.rend()) {
 		while (psIt != phonList.rend() &&
