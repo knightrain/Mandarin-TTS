@@ -95,18 +95,6 @@ int Dict::loadDictFile(const char *zhDict)
 
 void Dict::addSpecialSymbols(void)
 {
-	// add numbers
-	addDictItem(48, findPhonSymbol("ling2"));
-	addDictItem(49, findPhonSymbol("yi1"));
-	addDictItem(50, findPhonSymbol("er4"));
-	addDictItem(51, findPhonSymbol("san1"));
-	addDictItem(52, findPhonSymbol("si4"));
-	addDictItem(53, findPhonSymbol("wu3"));
-	addDictItem(54, findPhonSymbol("liu4"));
-	addDictItem(55, findPhonSymbol("qi1"));
-	addDictItem(56, findPhonSymbol("ba1"));
-	addDictItem(57, findPhonSymbol("jiu3"));
-
 	// full pauses
 	addDictItem(10, mFullPause); // "\n"
 	addDictItem(59, mFullPause); // ";"
@@ -201,13 +189,63 @@ PhoneticSymbol* Dict::lookup(Character &c) {
 	}
 }
 
+void Dict::handleDelayedCharList(list<PhoneticSymbol*> *phonList,
+		list<Character> *delayedCharList, char tone)
+{
+	DictItem *di = 0;
+	list<PhoneticSymbol *> pl;
+	PhoneticSymbol * phon;
+	int lastCode = 0;
 
-list<PhoneticSymbol*> Dict::lookup(list<Character> &charList) {
+	if (delayedCharList->empty())
+		return;
+
+	while (!delayedCharList->empty()) {
+		Character c = delayedCharList->front();
+		if (c.code < 65536) {
+			di = &mDictItemArray[c.code];
+		} else {
+			di = &mExtraDictItemMap[c.code];
+		}
+
+		if ((c.code == 0x4e0d || c.code == 0x4e00) && c.code != lastCode) {
+			// "不/一" tone -> 2 when the next tone is 4
+			string sym = di->character.phonSymbol->getSymbolStr();
+			if (tone == '4') {
+				tone = sym[sym.length() - 1] = '2';
+				phon = findPhonSymbol(sym);
+				pl.push_front(phon);
+			} else { 
+				pl.push_front(di->character.phonSymbol);
+				tone = di->character.phonSymbol->getTone();
+			}
+		}
+		else {
+			/*TODO:
+			 * there may be other special character, but we just put the
+			 * defaut phonetic back here.
+			 */
+			pl.push_front(di->character.phonSymbol);
+			tone = di->character.phonSymbol->getTone();
+		}
+
+		lastCode = c.code;
+		delayedCharList->pop_front();
+	}
+
+	while(!pl.empty()) {
+		phonList->push_back(pl.front());
+		pl.pop_front();
+	}
+}
+
+list<PhoneticSymbol*> Dict::lookup(list<Character> &charList)
+{
 	list<PhoneticSymbol*> phonList;
 	list<Character>::iterator cItor = charList.begin();
 	list<Character>::iterator cItor2 = charList.begin();
+	list<Character> delayedCharList;
 	DictItem *di = 0;
-	int buflag = 0;
 
 	while (cItor != charList.end()) {
 		// get DictItem
@@ -261,40 +299,20 @@ list<PhoneticSymbol*> Dict::lookup(list<Character> &charList) {
 
 		if (foundMatchedWord) {
 			cItor2 = (*matchedWordItor)->begin();
-			if (buflag) {
-				PhoneticSymbol * phon;
-				if (cItor2->phonSymbol->getTone() == '4')
-					// "不" tone 4 -> 2 when the next tone is 4
-					phon = findPhonSymbol("bu2");
-				else 
-					phon = findPhonSymbol("bu4");
-				phonList.push_back(phon);
-				buflag = 0;
-			}
+			handleDelayedCharList(&phonList, &delayedCharList,
+					cItor2->phonSymbol->getTone());
 			for (; cItor2 != (*matchedWordItor)->end(); ++cItor2) {
 				phonList.push_back(cItor2->phonSymbol);
 				++cItor;
 			}
-		} else if (cItor->code == 0x4e0d) {
-			++cItor;
-			if (buflag) {
-				PhoneticSymbol * phon = findPhonSymbol("bu4");
-				phonList.push_back(phon);
-			} else if (cItor != charList.end())
-				buflag = 1;
-			else 
-				phonList.push_back(di->character.phonSymbol);
+		} else if (cItor->code == 0x4e0d || cItor->code == 0x4e00) {
+			delayedCharList.push_front(*cItor);
+			cItor++;
+			if (cItor == charList.end())
+				handleDelayedCharList(&phonList, &delayedCharList, '0');
 		} else {
-			if (buflag) {
-				PhoneticSymbol * phon;
-				if (di->character.phonSymbol->getTone() == '4')
-					// "不" tone 4 -> 2 when the next tone is 4
-					phon = findPhonSymbol("bu2");
-				else 
-					phon = findPhonSymbol("bu4");
-				phonList.push_back(phon);
-				buflag = 0;
-			}
+			handleDelayedCharList(&phonList, &delayedCharList,
+					di->character.phonSymbol->getTone());
 			phonList.push_back(di->character.phonSymbol);
 			++cItor;
 		}

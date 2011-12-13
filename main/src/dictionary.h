@@ -87,6 +87,8 @@ class Dict {
 		int loadCharSession(FILE *dict);
 		int loadWordSession(FILE *dict);
 		DictItem * getDictItem(int code);
+		void handleDelayedCharList(list<PhoneticSymbol*> *phonList,
+				list<Character> *delayedCharList, char tone);
 
 	private:
 		/**

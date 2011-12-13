@@ -36,7 +36,7 @@ bool MandarinList::checkSpecialPhon(list<Character> *word)
 				c->code = ci->code;
 				c->symbolCode = ci->symbolCode;
 			}
-			if (c->code == 0x4e0d) {
+			if (c->code == 0x4e0d || c->code == 0x4e00) {
 				list<Character>::iterator ci2 = ci;
 				if (ci2 == word->begin() &&
 						ci2->getSymbolTone() == '2' &&
@@ -184,9 +184,7 @@ int MandarinList::load(const char *zhlist)
 			}
 
 			// a char line
-			else if (c2 != char_list.end() &&
-					c->code > 256 && // ignore ASCII temporary
-					(c2->code == ' ' || c2->code == '\t')) {
+			else if (c2 != char_list.end() && (c2->code == ' ' || c2->code == '\t')) {
 				Character c3 = *c;
 
 				// skip space
