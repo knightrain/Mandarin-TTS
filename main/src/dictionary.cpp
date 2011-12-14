@@ -189,56 +189,6 @@ PhoneticSymbol* Dict::lookup(Character &c) {
 	}
 }
 
-void Dict::handleDelayedCharList(list<PhoneticSymbol*> *phonList,
-		list<Character> *delayedCharList, char tone)
-{
-	DictItem *di = 0;
-	list<PhoneticSymbol *> pl;
-	PhoneticSymbol * phon;
-	int lastCode = 0;
-
-	if (delayedCharList->empty())
-		return;
-
-	while (!delayedCharList->empty()) {
-		Character c = delayedCharList->front();
-		if (c.code < 65536) {
-			di = &mDictItemArray[c.code];
-		} else {
-			di = &mExtraDictItemMap[c.code];
-		}
-
-		if ((c.code == 0x4e0d || c.code == 0x4e00) && c.code != lastCode) {
-			// "不/一" tone -> 2 when the next tone is 4
-			string sym = di->character.phonSymbol->getSymbolStr();
-			if (tone == '4') {
-				tone = sym[sym.length() - 1] = '2';
-				phon = findPhonSymbol(sym);
-				pl.push_front(phon);
-			} else { 
-				pl.push_front(di->character.phonSymbol);
-				tone = di->character.phonSymbol->getTone();
-			}
-		}
-		else {
-			/*TODO:
-			 * there may be other special character, but we just put the
-			 * defaut phonetic back here.
-			 */
-			pl.push_front(di->character.phonSymbol);
-			tone = di->character.phonSymbol->getTone();
-		}
-
-		lastCode = c.code;
-		delayedCharList->pop_front();
-	}
-
-	while(!pl.empty()) {
-		phonList->push_back(pl.front());
-		pl.pop_front();
-	}
-}
-
 list<PhoneticSymbol*> Dict::lookup(list<Character> &charList)
 {
 	list<PhoneticSymbol*> phonList;
@@ -253,6 +203,12 @@ list<PhoneticSymbol*> Dict::lookup(list<Character> &charList)
 			di = &mDictItemArray[cItor->code];
 		} else {
 			di = &mExtraDictItemMap[cItor->code];
+		}
+
+		if (cItor->code == '[') {
+			cItor = handleSpecPhon(&phonList, charList, cItor);
+			if (cItor == charList.end())
+				break;
 		}
 
 		// TODO: handle english words
@@ -517,3 +473,103 @@ PhoneticSymbol* Dict::findPhonSymbol(string &symbol)
 	return pPhonSym;
 };
 
+void Dict::handleDelayedCharList(list<PhoneticSymbol*> *phonList,
+		list<Character> *delayedCharList, char tone)
+{
+	DictItem *di = 0;
+	list<PhoneticSymbol *> pl;
+	PhoneticSymbol * phon;
+	int lastCode = 0;
+
+	if (delayedCharList->empty())
+		return;
+
+	while (!delayedCharList->empty()) {
+		Character c = delayedCharList->front();
+		if (c.code < 65536) {
+			di = &mDictItemArray[c.code];
+		} else {
+			di = &mExtraDictItemMap[c.code];
+		}
+
+		if ((c.code == 0x4e0d || c.code == 0x4e00) && c.code != lastCode) {
+			// "不/一" tone -> 2 when the next tone is 4
+			string sym = di->character.phonSymbol->getSymbolStr();
+			if (tone == '4') {
+				tone = sym[sym.length() - 1] = '2';
+				phon = findPhonSymbol(sym);
+				pl.push_front(phon);
+			} else { 
+				pl.push_front(di->character.phonSymbol);
+				tone = di->character.phonSymbol->getTone();
+			}
+		}
+		else {
+			/*TODO:
+			 * there may be other special character, but we just put the
+			 * defaut phonetic back here.
+			 */
+			pl.push_front(di->character.phonSymbol);
+			tone = di->character.phonSymbol->getTone();
+		}
+
+		lastCode = c.code;
+		delayedCharList->pop_front();
+	}
+
+	while(!pl.empty()) {
+		phonList->push_back(pl.front());
+		pl.pop_front();
+	}
+}
+
+list<Character>::iterator
+Dict::handleSpecPhon(list<PhoneticSymbol*> *phonList,
+		list<Character> &charList, list<Character>::iterator ci)
+{
+	string sym;
+	list<Character>::iterator ci2 = ci;
+
+	ci2++;
+	if (ci2 != charList.end() && ci2->code == '[') {
+		ci2++;
+		while(ci2 != charList.end() && ci2->code != ']') {
+			sym += ci2->getUtf8();
+			ci2++;
+		}
+		
+		if (ci2 == charList.end())
+			goto bad_pattern;
+
+		ci2++;
+		if (ci2 == charList.end())
+			goto bad_pattern;
+		else if(ci2->code == '[') {
+			sym.clear();
+			ci2++;
+			while(ci2 != charList.end() && ci2->code != ']') {
+				sym += ci2->getUtf8();
+				ci2++;
+			}
+
+			if (ci2 == charList.end())
+				goto bad_pattern;
+
+			ci2++;
+			if (ci2->code == ']') {
+				PhoneticSymbol * phon = findPhonSymbol(sym);
+				phonList->push_back(phon);
+			} else
+				goto bad_pattern;
+		} else if (ci2->code == ']') {
+			PhoneticSymbol * phon = findPhonSymbol(sym);
+			phonList->push_back(phon);
+		}
+
+		return ci2;
+	}
+	
+bad_pattern:
+	phonList->push_back(mQuaterPause);
+	return ++ci;
+}

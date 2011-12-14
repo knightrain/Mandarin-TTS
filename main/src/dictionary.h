@@ -89,6 +89,8 @@ class Dict {
 		DictItem * getDictItem(int code);
 		void handleDelayedCharList(list<PhoneticSymbol*> *phonList,
 				list<Character> *delayedCharList, char tone);
+		list<Character>::iterator handleSpecPhon(list<PhoneticSymbol*> *phonList,
+				list<Character> &charList, list<Character>::iterator ci);
 
 	private:
 		/**
