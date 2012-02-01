@@ -275,29 +275,51 @@ list<PhoneticSymbol*> Dict::lookup(list<Character> &charList)
 	}
 
 	// tone 3 rules: 333->223, 33->23, 3333->2323
-	list<PhoneticSymbol*>::reverse_iterator psIt = phonList.rbegin();
-	while (psIt != phonList.rend()) {
-		while (psIt != phonList.rend() &&
+	list<PhoneticSymbol*>::iterator psIt = phonList.begin();
+	while (psIt != phonList.end()) {
+		int count = 0;
+		while (psIt != phonList.end() &&
 				(*psIt)->getTone() != '3') {
 			psIt++;
 		}
 
-		if (psIt != phonList.rend()) {
-			psIt++;
-			if (psIt != phonList.rend() &&
-					(*psIt)->getTone() == '3') {
-				list<PhoneticSymbol*>::reverse_iterator psNextIt = psIt;
+		if (psIt != phonList.end()) {
+			list<PhoneticSymbol*>::iterator psNextIt = psIt;
+
+			psNextIt++;
+			count++;
+			while (psNextIt != phonList.end() &&
+					(*psNextIt)->getTone() == '3') {
+				count++;
 				psNextIt++;
-				if (psNextIt != phonList.rend() &&
-						(*psNextIt)->getTone() == '3') {
+			}
+
+			while (count > 0) {
+				if (count == 3) {
+					//333->223
 					string sym = (*psIt)->getSymbolStr();
 					sym[sym.length() - 1] = '2';
 					*psIt = findPhonSymbol(sym);
 					psIt++;
+					sym = (*psIt)->getSymbolStr();
+					sym[sym.length() - 1] = '2';
+					*psIt = findPhonSymbol(sym);
+					psIt++;
+					psIt++;
+					count -= 3;
+				} else if (count >= 2) {
+					// 33->23
+					string sym = (*psIt)->getSymbolStr();
+					sym[sym.length() - 1] = '2';
+					*psIt = findPhonSymbol(sym);
+					psIt++;
+					psIt++;
+					count -= 2;
+				} else {
+					// 3->3
+					psIt++;
+					count -= 1;
 				}
-				string sym = (*psIt)->getSymbolStr();
-				sym[sym.length() - 1] = '2';
-				*psIt = findPhonSymbol(sym);
 			}
 		}
 	}
