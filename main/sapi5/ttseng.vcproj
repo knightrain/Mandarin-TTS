@@ -185,7 +185,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="libsndfile-1.lib wsock32.lib winmm.lib"
-				OutputFile=".\Debug\tts_mandarin.dll"
+				OutputFile=".\Debug_x86\tts_mandarin.dll"
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
 				AdditionalLibraryDirectories="&quot;$(ProjectDir)lib32\debug&quot;;C:\Boost\lib;&quot;C:\Program Files\Mega-Nerd\libsndfile\lib&quot;;&quot;C:\Program Files\Microsoft Speech SDK 5.1\Lib\i386&quot;"
