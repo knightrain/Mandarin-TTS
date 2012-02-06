@@ -1,2 +1,9 @@
 *.swp
 voices/
+main/sapi5/Debug_x86/
+main/sapi5/MkVoice/Debug/
+main/sapi5/TtsEng.h
+main/sapi5/TtsEng.tlb
+main/sapi5/TtsEng_i.c
+main/sapi5/ttseng.ncb
+main/sapi5/ttseng.suo
