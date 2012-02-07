@@ -7,4 +7,4 @@ main/sapi5/TtsEng.tlb
 main/sapi5/TtsEng_i.c
 main/sapi5/ttseng.ncb
 main/sapi5/ttseng.suo
-resource/Mandarin.list
+resources/Mandarin.list
